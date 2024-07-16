@@ -40,6 +40,10 @@ func run() error {
 		}
 	}()
 
+	if err := persistence.RunMigrations(db); err != nil {
+		log.Fatalf("failed to run database migrations: %v", err)
+	}
+
 	userRepo := persistence.NewPgUserRepository(db)
 	userService := service.NewUserService(userRepo)
 	handler := api.NewHandler(userService)
