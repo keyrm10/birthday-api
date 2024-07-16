@@ -1,0 +1,48 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - PGUSER=postgres
+      - PGPASSWORD=secret
+      - PGHOST=db
+      - PGPORT=5432
+      - PGDATABASE=birthdays
+      - PGSSLMODE=disable
+      - SERVER_ADDRESS=:8080
+    networks:
+      - birthday-network
+    depends_on:
+      db:
+        condition: service_healthy
+  
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=birthdays
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - birthday-network
+    expose:
+      - 5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  birthday-network:
+    driver: bridge
+
+volumes:
+  db-data:
+    driver: local
