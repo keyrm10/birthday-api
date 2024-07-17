@@ -1,0 +1,60 @@
+name: Test and Lint
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.go'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**/*.go'
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: 'postgres:15'
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: testdb
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install dependencies
+        run: go mod download
+      - name: Run tests
+        run: go test -v ./...
+        env:
+          PGUSER: postgres
+          PGPASSWORD: secret
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: testdb
+          PGSSLMODE: disable
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.59
