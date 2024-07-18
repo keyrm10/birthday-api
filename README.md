@@ -9,6 +9,7 @@ The Birthday API is a RESTful service designed to manage birthday information ef
   - [Domain-Driven Design](#domain-driven-design-ddd)
   - [Hexagonal architecture](#hexagonal-architecture)
   - [Test-Driven Development](#test-driven-development-tdd)
+- [System architecture](#system-architecture)
 - [Usage](#usage)
   - [Local deployment](#local-deployment)
 
@@ -82,6 +83,55 @@ This separation makes the system more flexible and testable. For example, the Po
 Throughout the development process, TDD principles were followed. For each new feature, a failing test was written first, then the minimum code needed to pass the test, followed by refactoring.
 
 TDD ensures high test coverage, guides API design, and catches issues early in the development process. Tests also serve as living documentation of system behavior.
+
+## System architecture
+
+The diagram below outlines the architecture of the Birthday API application deployed on Google Cloud:
+
+```mermaid
+graph TB
+    subgraph "Google Cloud"
+        CA[Cloud Armor]
+        LB["Application Load Balancer (L7)"]
+        subgraph "GKE regional cluster"
+            NGINX[NGINX Ingress Controller]
+            subgraph "Node Pool"
+                API[Birthday API Pods]
+            end
+            HPA["Horizontal Pod Autoscaler (HPA)"]
+        end
+        subgraph "Cloud SQL"
+            MASTER[PostgreSQL Master]
+            REPLICA[PostgreSQL Replicas]
+        end
+        SM[Secret Manager]
+        subgraph "Operations"
+            CM[Cloud Monitoring]
+            CL[Cloud Logging]
+        end
+    end
+    
+    USERS[Users] -->|HTTPS| CA
+    CA --> LB
+    LB --> NGINX
+    NGINX --> API
+    API -.-> SM
+    API --> MASTER
+    MASTER --> REPLICA
+    HPA -.->|Scale| API
+    API -.-> CM
+    API -.-> CL
+```
+
+The system architecture is built on a microservices model and deployed on GKE. It's designed for scalability, high availability, and security, utilizing Google Cloud's managed services to reduce operational efficiency:
+
+1. Cloud Armor is a WAF that provides defense against volumetric DDoS and web attacks. An Application Load Balancer (L7) then distributes traffic efficiently across the application instances.
+
+2. The application runs in a regional GKE cluster, ensuring high availability across zones. NGINX Ingress Controller handles in-cluster routing, while HPA dynamically adjusts pod count based on demand.
+
+3. Cloud SQL for PostgreSQL manages data storage, using read replicas for improved performance and failover. Secret Manager securely stores configuration secrets.
+
+4. Cloud Monitoring and Cloud Logging offer comprehensive visibility into system health and performance.
 
 ## Usage
 
