@@ -11,18 +11,31 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	pgUser := os.Getenv("PGUSER")
-	pgPassword := os.Getenv("PGPASSWORD")
-	pgHost := os.Getenv("PGHOST")
-	pgPort := os.Getenv("PGPORT")
-	pgDatabase := os.Getenv("PGDATABASE")
-	pgSSLMode := os.Getenv("PGSSLMODE")
+	pgUser := getEnv("PGUSER", "")
+	pgPassword := getEnv("PGPASSWORD", "")
+	pgHost := getEnv("PGHOST", "localhost")
+	pgPort := getEnv("PGPORT", "5432")
+	pgDatabase := getEnv("PGDATABASE", "")
+	pgSSLMode := getEnv("PGSSLMODE", "disable")
+
+	if pgUser == "" || pgPassword == "" || pgDatabase == "" {
+		return nil, fmt.Errorf("missing required database configuration")
+	}
 
 	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		pgUser, pgPassword, pgHost, pgPort, pgDatabase, pgSSLMode)
 
+	serverAddress := getEnv("SERVER_ADDRESS", ":8080")
+
 	return &Config{
 		DatabaseURL:   databaseURL,
-		ServerAddress: os.Getenv("SERVER_ADDRESS"),
+		ServerAddress: serverAddress,
 	}, nil
+}
+
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return fallback
 }

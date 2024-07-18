@@ -27,12 +27,12 @@ func main() {
 func run() error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %v", err)
+		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	db, err := persistence.NewPostgresDB(cfg.DatabaseURL)
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
@@ -41,7 +41,7 @@ func run() error {
 	}()
 
 	if err := persistence.RunMigrations(db); err != nil {
-		log.Fatalf("failed to run database migrations: %v", err)
+		return fmt.Errorf("failed to run database migrations: %w", err)
 	}
 
 	userRepo := persistence.NewPgUserRepository(db)
@@ -56,8 +56,9 @@ func run() error {
 	}
 
 	go func() {
+		log.Printf("Starting server on %s", cfg.ServerAddress)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("failed to start server: %v", err)
+			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
 
